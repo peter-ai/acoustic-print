@@ -16,6 +16,7 @@ import streamlit as st
 # import user defined package
 from acoustic_helpers import (
     generate_fingerprint,
+    get_audio_descriptions,
     get_sql_connect_str,
     plot_acoustic_print,
 )
@@ -38,13 +39,40 @@ def main():
         **Author: Peter Akioyamen** (see [@peter-ai](https://github.com/peter-ai/acoustic-print) for the full github repo)
         
         ### Context
-        Acoustic-Print is a project that seeks to ... [PLACEHOLDER]
+        An audio or acoustic fingerprint is a digital summary that can be generated from an audio signal deterministically. 
+        Generally, it allows for the lookup of similar audio signals and helps identify an audio signal so it can be 
+        recognized quickly later. 
+        
+        **Acoustic-Print** is a project that seeks to develop a visual representation of an acoustic fingerprint with a similar 
+        foundation in mind; the acoustic fingerprint should be deterministic and songs that are similar in audio features should
+        have similar acoustic-prints. The acoustic-print of a song is split into two visualizations, one representing Rhythm & Dynamics
+        (comprised of valence, energy, and danceability) and the other Articulation & Texture (comprised of speechiness, instrumentalness, 
+        and acousticness), with embedding information about the tempo of the song.
         """
     )
-    with st.expander("See a details about data and analysis"):
+
+    feature_desc = get_audio_descriptions()
+    with st.expander("See further details"):
+        # TODO - Write stuff about data and analyss
         st.write(
-            """
-            Stuff about data and analysis ... [PLACEHOLDER]
+            f"""
+            ### Analysis
+            Stuff about data and analysis ... [PLACEHOLDER] Polar Curves
+
+            ### Audio Features
+            | Audio feature       | Description        |
+            |---------------------|--------------------|
+            | Valence             | {feature_desc[0]}  |
+            | Danceability        | {feature_desc[1]}  |
+            | Energy              | {feature_desc[2]}  |
+            | Acousticness        | {feature_desc[3]}  |
+            | Instrumentalness    | {feature_desc[4]}  |
+            | Speechiness         | {feature_desc[5]}  |
+            | Tempo               | {feature_desc[6]}  |
+            | Liveness            | {feature_desc[7]}  |
+            
+            ### Data
+            [PLACEHOLDER]
             """
         )
     st.divider()
