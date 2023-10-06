@@ -8,16 +8,17 @@ music catalogue. The app uses a MySQL backend and is built on Streamlit.
 
 Songs Page of the Acoustic Print web app
 """
-# import packages from standard libraries
-import os
-
 # import external dependencies
 import numpy as np
 import pandas as pd
-import plotly.express as px
 import streamlit as st
-from dotenv import load_dotenv
-from plotly.subplots import make_subplots
+
+# import user defined package
+from acoustic_helpers import (
+    generate_fingerprint,
+    get_sql_connect_str,
+    plot_acoustic_print,
+)
 
 
 def main():
@@ -25,6 +26,13 @@ def main():
     st.set_page_config(layout="wide", page_title="Acoustic Print - Home", page_icon="🎵")
 
     st.write("Hello world")
+
+    # TODO
+    # 2-3 columns - acoustic print, spider chart (song vs. genre vs. current selection), and bars (song vs. genre vs. current_)
+    # progress bar
+    # filterable
+    # table with all tracks
+    # 
 
 
 # main program
