@@ -320,14 +320,28 @@ def plot_acoustic_print(data, dynamics_df, articulation_df):
 
 
 @st.cache_data
-def get_filtered_acoustics(track, filtered_genres_df):
-    # TODO docstring
+def get_filtered_acoustics(data, filtered_genres_df):
+    """
+    get_filtered_acoustics _summary_
 
+    Parameters
+    ----------
+    data : pd.DataFrame
+        1xN pandas dataframe containing the audio features for a song
+    filtered_genres_df : pd.DataFrame
+        a pandas dataframe of songs filtered based on user-provided parameters
+
+    Returns
+    -------
+    pd.DataFrame
+        a pandas dataframe containing aggregated acoustic features for a song and its
+        associated genres
+    """
     # get genres associated with selected track
-    genre = filtered_genres_df.loc[filtered_genres_df.id == track.id.iloc[0], "Genre"]
+    genre = filtered_genres_df.loc[filtered_genres_df.id == data.id.iloc[0], "Genre"]
 
     # reformat audio information about given track
-    track_radar = track.filter(
+    track_radar = data.filter(
         [
             "Valence",
             "Energy",
@@ -371,6 +385,18 @@ def get_filtered_acoustics(track, filtered_genres_df):
 
 
 def plot_acoustic_radar(data, radar_df):
+    """
+    plot_acoustic_radar plots the radar/spider chart of the current song selection
+    and the average across its associated genres
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        1xN pandas dataframe containing the audio features for a song
+    radar_df : pd.DataFrame
+        a pandas dataframe containing aggregated acoustic features for a song and its
+        associated genres
+    """
     # plot radar chart
     fig = px.line_polar(
         data_frame=radar_df,
