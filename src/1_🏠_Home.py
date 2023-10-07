@@ -15,7 +15,7 @@ import streamlit as st
 
 # import user defined package
 from acoustic_helpers import (
-    generate_fingerprint,
+    generate_acousticprint,
     get_audio_descriptions,
     get_sql_connect_str,
     plot_acoustic_print,
@@ -89,9 +89,9 @@ def main():
         """,
         ttl=1000,
     )
-    DY_df = generate_fingerprint(rand_song, category="dynamics")
-    AR_df = generate_fingerprint(rand_song, points=2000, category="articulation")
-    plot_acoustic_print(rand_song, DY_df, AR_df)
+    DY_df = generate_acousticprint(rand_song, category="dynamics")
+    AR_df = generate_acousticprint(rand_song, points=2000, category="articulation")
+    plot_acoustic_print(DY_df, AR_df)
 
     # query database for albums data
     albums_df = conn.query(

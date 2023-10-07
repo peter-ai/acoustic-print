@@ -68,6 +68,151 @@ def get_audio_descriptions():
 
 
 @st.cache_data
+def get_tracks(_conn, sql_query):
+    """
+    get_tracks queries database and gets all tracks from the database
+
+    Parameters
+    ----------
+    _conn : sqlalchemy
+        a connection to a MySQL database
+    sql_query : _type_
+        query string for MySQL database
+
+    Returns
+    -------
+    pd.DataFrame
+        a pandas dataframe of all tracks in the database
+    """
+    return _conn.query(sql_query)
+
+
+@st.cache_data
+def get_filtered_tracks(
+    tracks_df,
+    min_valence,
+    max_valence,
+    min_energy,
+    max_energy,
+    min_dance,
+    max_dance,
+    min_acoustics,
+    max_acoustics,
+    min_instrument,
+    max_instrument,
+    min_speech,
+    max_speech,
+    min_live,
+    max_live,
+    min_tempo,
+    max_tempo,
+    min_duration,
+    max_duration,
+    explicit_vals,
+):
+    """
+    get_filtered_tracks gets filtered tracks based on user selected parameters
+
+    Parameters
+    ----------
+    tracks_df : pd.DataFrame
+        a pandas dataframe of tracks
+    min_valence : float
+        minimum valence selected by user
+    max_valence : float
+        maximum valence selected by user
+    min_energy : float
+        minimum energy selected by user
+    max_energy : float
+        maximum energy selected by user
+    min_dance : float
+        minimum danceability selected by user
+    max_dance : float
+        maximum danceability selected by user
+    min_acoustics : float
+        minimum acousticness selected by user
+    max_acoustics : float
+        maximum acousticness selected by user
+    min_instrument : float
+        minimum instrumentalness selected by user
+    max_instrument : float
+        maximum instrumentalness selected by user
+    min_speech : float
+        minimum speechiness selected by user
+    max_speech : float
+        maximum speechiness selected by user
+    min_live : float
+        minimum liveness selected by user
+    max_live : float
+        maximum liveness selected by user
+    min_tempo : float
+        minimum tempo selected by user
+    max_tempo : float
+        maximum tempo selected by user
+    min_duration : float
+        minimum duration selected by user
+    max_duration : float
+        maximum duration selected by user
+    explicit_vals : list
+        filter on explicit music
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    filtered_tracks_df = tracks_df.loc[
+        (
+            (min_valence <= tracks_df["Valence"])
+            & (tracks_df["Valence"] <= max_valence)
+            & (min_energy <= tracks_df["Energy"])
+            & (tracks_df["Energy"] <= max_energy)
+            & (min_dance <= tracks_df["Danceability"])
+            & (tracks_df["Danceability"] <= max_dance)
+            & (min_acoustics <= tracks_df["Acousticness"])
+            & (tracks_df["Acousticness"] <= max_acoustics)
+            & (min_instrument <= tracks_df["Instrumentalness"])
+            & (tracks_df["Instrumentalness"] <= max_instrument)
+            & (min_speech <= tracks_df["Speechiness"])
+            & (tracks_df["Speechiness"] <= max_speech)
+            & (min_live <= tracks_df["Liveness"])
+            & (tracks_df["Liveness"] <= max_live)
+            & (min_tempo <= tracks_df["Tempo"])
+            & (tracks_df["Tempo"] <= max_tempo)
+            & ((min_duration * 60) <= tracks_df["Duration"])
+            & (tracks_df["Duration"] <= (max_duration * 60))
+            & (tracks_df.Explicit.isin(explicit_vals))
+        ),
+        :,
+    ].iloc[:, :-1]
+    filtered_tracks_df["Duration"] = filtered_tracks_df.Duration.apply(
+        lambda x: f"{x//60}:{x-((x//60)*60):02d}"
+    )
+
+    # seperate filtered data into subsets, one with the genre and and the other without
+    filtered_genres_df = filtered_tracks_df.filter(
+        [
+            "id",
+            "Valence",
+            "Energy",
+            "Danceability",
+            "Acousticness",
+            "Instrumentalness",
+            "Speechiness",
+            "Liveness",
+            "Genre",
+        ]
+    )
+    filtered_tracks_df = (
+        filtered_tracks_df.drop(["Genre"], axis=1)
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
+
+    return (filtered_tracks_df, filtered_genres_df)
+
+
+@st.cache_data
 def pol2cart(rho, theta):
     """
     pol2cart transforms a set of polar coordinates to cartesian coordinates
@@ -122,7 +267,7 @@ def norm_tempo(tempo):
 
 
 @st.cache_data
-def generate_fingerprint(data, points=1500, category="dynamics"):
+def generate_acousticprint(data, points=3000, category="dynamics"):
     """
     generate_fingerprint produces the acoustic fingerprint for a given song
     base on its measured audio features
@@ -235,7 +380,7 @@ def generate_fingerprint(data, points=1500, category="dynamics"):
     return acoustic_print
 
 
-def plot_acoustic_print(data, dynamics_df, articulation_df):
+def plot_acoustic_print(dynamics_df, articulation_df):
     """
     plot_acoustic_print plots the acoustic-print comprised of polar curves that uniquely identifies
     the given song and displays the resulting figure in full-page width.
@@ -315,7 +460,6 @@ def plot_acoustic_print(data, dynamics_df, articulation_df):
     fig.update_scenes(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False)
 
     # generate caption and plot
-    st.caption(f"{data['Song'].iloc[0]} by {data['Artist'].iloc[0]}")
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -377,14 +521,14 @@ def get_filtered_acoustics(data, filtered_genres_df):
     )
 
     # combine computed audio features with those from song and reformat dataframe
-    radar_df = pd.concat([track_radar, genre_radar])
+    radar_df = pd.concat([track_radar, genre_radar], ignore_index=True)
     radar_df.columns = ["Theta", "Song's Genres", "Rho"]
 
     # return final dataframe
     return radar_df
 
 
-def plot_acoustic_radar(data, radar_df):
+def plot_acoustic_radar(radar_df):
     """
     plot_acoustic_radar plots the radar/spider chart of the current song selection
     and the average across its associated genres
@@ -423,13 +567,30 @@ def plot_acoustic_radar(data, radar_df):
     fig.update_polars(bgcolor="rgba(0,0,0,0)")
 
     # generate caption and plot
-    st.caption(
-        f"{data['Song'].iloc[0]} by {data['Artist'].iloc[0]}",
-        help="click on legend items to change visibility; double-click to isolate",
-    )
     st.plotly_chart(fig, use_container_width=True)
 
 
-def plot_acoustic_bars():
-    # TODO: Write function
-    pass
+def plot_acoustic_bars(bar_df):
+    """
+    plot_acoustic_bars plots the bar chart of the current song selection
+    and the average across its associated genres and subsets of the music catalogue
+
+    Parameters
+    ----------
+    bar_df : pd.DataFrame
+        a pandas dataframe containing rlevant information for plotting bars
+    """
+    # create bar chart
+    fig = px.bar(
+        data_frame=bar_df,
+        x="Audio Features",
+        y="Values",
+        color="Track Subset",
+        barmode="group",
+    )
+
+    # update opacity
+    fig.update_traces(opacity=0.75)
+
+    # generate plot
+    st.plotly_chart(fig, use_container_width=True)
