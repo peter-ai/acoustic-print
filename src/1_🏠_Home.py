@@ -25,7 +25,6 @@ from acoustic_helpers import (
 def main():
     # define local page config
     st.set_page_config(layout="wide", page_title="Acoustic Print - Home", page_icon="🏠")
-    st.sidebar.write("ON HOME PAGE DELETE IF NOT NEEDED")
 
     # create database connection
     conn_str = get_sql_connect_str()
@@ -63,8 +62,8 @@ def main():
             | Audio feature       | Description        |
             |---------------------|--------------------|
             | Valence             | {feature_desc[0]}  |
-            | Danceability        | {feature_desc[1]}  |
-            | Energy              | {feature_desc[2]}  |
+            | Energy              | {feature_desc[1]}  |
+            | Danceability        | {feature_desc[2]}  |
             | Acousticness        | {feature_desc[3]}  |
             | Instrumentalness    | {feature_desc[4]}  |
             | Speechiness         | {feature_desc[5]}  |
@@ -80,7 +79,7 @@ def main():
     # query database for random track
     rand_song = conn.query(
         """
-        SELECT title AS Name, acousticness AS Acousticness, danceability AS Danceability, 
+        SELECT title AS `Song`, acousticness AS Acousticness, danceability AS Danceability, 
             valence AS Valence, energy AS Energy, tempo AS Tempo, speechiness AS Speechiness, 
             instrumentalness AS Instrumentalness, name AS Artist 
         FROM Tracks 
@@ -97,7 +96,7 @@ def main():
     # query database for albums data
     albums_df = conn.query(
         """ 
-        SELECT Ab.id, Ab.title AS `Album Title`, Ab.release_date AS `Release Date`,
+        SELECT Ab.id, Ab.title AS Album, Ab.release_date AS `Release Date`,
             Ab.favorites AS Favorites, Ab.listens AS Listens, Ar.name AS Artist, Ab.artist_id
         FROM Albums Ab
             INNER JOIN Artists Ar
@@ -111,7 +110,7 @@ def main():
         albums_df,
         hide_index=True,
         use_container_width=True,
-        column_order=("Album Title", "Artist", "Release Date", "Favorites", "Listens"),
+        column_order=("Album", "Artist", "Release Date", "Favorites", "Listens"),
     )
 
     # query database for artists data
@@ -133,7 +132,7 @@ def main():
             left=artists_df,
             right=albums_df.loc[
                 albums_df.groupby(by="Artist")["Favorites"].idxmax(),
-                ["artist_id", "Album Title"],
+                ["artist_id", "Album"],
             ],
             left_on="id",
             right_on="artist_id",
@@ -141,8 +140,8 @@ def main():
         ),
         hide_index=True,
         use_container_width=True,
-        column_order=("Artist", "Favorites", "Number of Albums", "Album Title"),
-        column_config={"Album Title": "Most Popular Album"},
+        column_order=("Artist", "Favorites", "Number of Albums", "Album"),
+        column_config={"Album": "Most Popular Album"},
     )
 
 
