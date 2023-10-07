@@ -9,9 +9,10 @@ music catalogue. The app uses a MySQL backend and is built on Streamlit.
 Home Page of the Acoustic Print web app
 """
 # import external dependencies
-import numpy as np
 import pandas as pd
 import streamlit as st
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
+from st_pages import hide_pages
 
 # import user defined package
 from acoustic_helpers import (
@@ -25,6 +26,7 @@ from acoustic_helpers import (
 def main():
     # define local page config
     st.set_page_config(layout="wide", page_title="Acoustic Print - Home", page_icon="🏠")
+    hide_pages(["Album"])
 
     # create database connection
     conn_str = get_sql_connect_str()
@@ -57,19 +59,31 @@ def main():
             f"""
             ### Analysis
             Stuff about data and analysis ... [PLACEHOLDER] Polar Curves
-
-            ### Audio Features
-            | Audio feature       | Description        |
-            |---------------------|--------------------|
-            | Valence             | {feature_desc[0]}  |
-            | Energy              | {feature_desc[1]}  |
-            | Danceability        | {feature_desc[2]}  |
-            | Acousticness        | {feature_desc[3]}  |
-            | Instrumentalness    | {feature_desc[4]}  |
-            | Speechiness         | {feature_desc[5]}  |
-            | Tempo               | {feature_desc[6]}  |
-            | Liveness            | {feature_desc[7]}  |
-            
+            #### Description of Audio Features
+            """
+        )
+        st.caption("", help="double click description to expand details")
+        st.dataframe(
+            pd.DataFrame(
+                {
+                    "Audio feature": [
+                        "Valence",
+                        "Energy",
+                        "Danceability",
+                        "Acousticness",
+                        "Instrumentalness",
+                        "Speechiness",
+                        "Tempo",
+                        "Liveness",
+                    ],
+                    "Description": feature_desc,
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+        st.write(
+            """
             ### Data
             [PLACEHOLDER]
             """
@@ -91,12 +105,17 @@ def main():
     )
     DY_df = generate_acousticprint(rand_song, category="dynamics")
     AR_df = generate_acousticprint(rand_song, points=2000, category="articulation")
+
+    st.caption(
+        f"{rand_song['Song'].iloc[0]} by {rand_song['Artist'].iloc[0]}",
+        help="click on legend items to change visibility; double-click to isolate",
+    )
     plot_acoustic_print(DY_df, AR_df)
 
     # query database for albums data
     albums_df = conn.query(
         """ 
-        SELECT Ab.id, Ab.title AS Album, Ab.release_date AS `Release Date`,
+        SELECT Ab.id, Ab.title AS Album, Ab.release_date AS `Release Date`, Ab.num_tracks AS Songs,
             Ab.favorites AS Favorites, Ab.listens AS Listens, Ar.name AS Artist, Ab.artist_id
         FROM Albums Ab
             INNER JOIN Artists Ar
@@ -104,13 +123,66 @@ def main():
         WHERE Ab.num_tracks<>0 AND Ab.release_date IS NOT NULL;
         """
     )
+    albums_df["Linkage"] = albums_df.apply(
+        lambda row: [str(row["id"]), str(row["Album"])], axis=1
+    )
+    albums_df["Release Date"] = pd.to_datetime(
+        albums_df["Release Date"], format="%Y-%M-%d"
+    )
+
     # format and display albums data
     st.caption(body="Albums", help="cmd+f/ctrl+f to search table")
     st.dataframe(
         albums_df,
         hide_index=True,
         use_container_width=True,
-        column_order=("Album", "Artist", "Release Date", "Favorites", "Listens"),
+        column_order=(
+            "Album",
+            "Artist",
+            "Release Date",
+            "Favorites",
+            "Listens",
+            "Songs",
+        ),
+    )
+
+    builder1 = GridOptionsBuilder.from_dataframe(
+        albums_df.filter(
+            ["Linkage", "Artist", "Release Date", "Favorites", "Listens", "Songs"]
+        )
+    )
+    builder1.configure_pagination(enabled=True, paginationAutoPageSize=True)
+    builder1.configure_column(
+        "Release Date",
+        type=["customDateTimeFormat", "dateColumnFilter"],
+        custom_format_string="yyyy-MM-dd",
+    )
+    builder1.configure_column(
+        "Linkage",
+        "Album",
+        cellRenderer=JsCode(
+            """
+            class UrlCellRenderer {
+                init(params) {
+                    this.eGui = document.createElement('span');
+                    this.eGui.innerHTML = '<a href="/Album?id='+params.value[0]+'" target=_blank>'+params.value[1]+'</a>';    
+                }
+                getGui() {
+                    return this.eGui;
+                }
+            }
+        """
+        ),
+    )
+    go1 = builder1.build()
+    AgGrid(
+        albums_df.filter(
+            ["Linkage", "Artist", "Release Date", "Favorites", "Listens", "Songs"]
+        ),
+        fit_columns_on_grid_load=True,
+        gridOptions=go1,
+        theme="streamlit",
+        allow_unsafe_jscode=True,
     )
 
     # query database for artists data
@@ -142,6 +214,25 @@ def main():
         use_container_width=True,
         column_order=("Artist", "Favorites", "Number of Albums", "Album"),
         column_config={"Album": "Most Popular Album"},
+    )
+
+    artists_ag_df = pd.merge(
+        left=artists_df,
+        right=albums_df.loc[
+            albums_df.groupby(by="Artist")["Favorites"].idxmax(),
+            ["artist_id", "Album"],
+        ],
+        left_on="id",
+        right_on="artist_id",
+        how="inner",
+    ).filter(["Artist", "Favorites", "Number of Albums", "Album"])
+    builder2 = GridOptionsBuilder.from_dataframe(artists_ag_df)
+    builder2.configure_pagination(enabled=True, paginationAutoPageSize=True)
+    go2 = builder2.build()
+    AgGrid(
+        artists_ag_df,
+        fit_columns_on_grid_load=True,
+        gridOptions=go2,
     )
 
 

@@ -9,9 +9,9 @@ music catalogue. The app uses a MySQL backend and is built on Streamlit.
 Songs Page of the Acoustic Print web app
 """
 # import external dependencies
-import numpy as np
 import pandas as pd
 import streamlit as st
+from st_pages import hide_pages
 
 # import user defined package
 from acoustic_helpers import (
@@ -32,6 +32,7 @@ def main():
     st.set_page_config(
         layout="wide", page_title="Acoustic Print - Songs", page_icon="🎵"
     )
+    hide_pages(["Album"])
 
     # create audio feature description table
     feature_desc = get_audio_descriptions()
@@ -224,37 +225,35 @@ def main():
     ### --------------------------------------
     ### Output data and visual content to page
     # define song selection widget
-    filtered_ids = filtered_tracks_df.id
+    filtered_ids = filtered_tracks_df[["id", "Song", "Artist"]].set_index("id")
+    filtered_ids["Name"] = filtered_ids.Song.str.cat(filtered_ids.Artist, sep=" by ")
     if "song_selection" not in st.session_state:
         # if song selection is not in session state, it has not occurred so set default values
         song_selection = st.selectbox(
             label="Song",
-            options=filtered_tracks_df.id,
-            format_func=lambda x: " by ".join(
-                filtered_tracks_df.iloc[
-                    np.where(filtered_ids == x)[0], :2
-                ].values.tolist()[0]
-            ),
+            options=filtered_ids.index.values,
+            format_func=lambda x: filtered_ids.loc[x, "Name"],
             key="song_selection",
         )
     else:
+        song_selection = st.session_state.song_selection
         try:
             # otherwise it has occurred so attempt to set previous selection to the current selection
             song_selection = st.selectbox(
                 label="Song",
-                options=filtered_ids,
-                index=filtered_ids.index[
-                    list(filtered_ids).index(st.session_state["song_selection"])
-                ],
-                format_func=lambda x: f"{filtered_tracks_df.iloc[np.where(filtered_ids==x)[0], 0].iloc[0]} by {filtered_tracks_df.iloc[np.where(filtered_ids==x)[0], 1].iloc[0]}",
+                options=filtered_ids.index.values,
+                index=filtered_ids.index.to_list().index(
+                    st.session_state["song_selection"]
+                ),
+                format_func=lambda x: filtered_ids.loc[x, "Name"],
                 key="song_selection",
             )
         except ValueError as e:
             # previous selection is no longer in the filtered results so reset selection to default
             song_selection = st.selectbox(
                 label="Song",
-                options=filtered_ids,
-                format_func=lambda x: f"{filtered_tracks_df.iloc[np.where(filtered_ids==x)[0], 0].iloc[0]} by {filtered_tracks_df.iloc[np.where(filtered_ids==x)[0], 1].iloc[0]}",
+                options=filtered_ids.index.values,
+                format_func=lambda x: filtered_ids.loc[x, "Name"],
                 key="song_selection",
             )
         finally:
