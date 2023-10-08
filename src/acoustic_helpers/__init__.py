@@ -267,7 +267,7 @@ def norm_tempo(tempo):
 
 
 @st.cache_data
-def generate_acousticprint(data, points=3000, category="dynamics"):
+def generate_acoustic_print(data, points=3000, category="dynamics"):
     """
     generate_fingerprint produces the acoustic fingerprint for a given song
     base on its measured audio features

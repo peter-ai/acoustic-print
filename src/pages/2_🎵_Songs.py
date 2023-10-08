@@ -15,7 +15,7 @@ from st_pages import hide_pages
 
 # import user defined package
 from acoustic_helpers import (
-    generate_acousticprint,
+    generate_acoustic_print,
     get_audio_descriptions,
     get_filtered_acoustics,
     get_filtered_tracks,
@@ -33,6 +33,7 @@ def main():
         layout="wide", page_title="Acoustic Print - Songs", page_icon="🎵"
     )
     hide_pages(["Album"])
+    st.title("Songs")
 
     # create audio feature description table
     feature_desc = get_audio_descriptions()
@@ -57,6 +58,7 @@ def main():
             use_container_width=True,
             hide_index=True,
         )
+    st.divider()
 
     # edit the display with of multiselect widgets
     st.markdown(
@@ -230,7 +232,7 @@ def main():
     if "song_selection" not in st.session_state:
         # if song selection is not in session state, it has not occurred so set default values
         song_selection = st.selectbox(
-            label="Song",
+            label="Song selection",
             options=filtered_ids.index.values,
             format_func=lambda x: filtered_ids.loc[x, "Name"],
             key="song_selection",
@@ -240,7 +242,7 @@ def main():
         try:
             # otherwise it has occurred so attempt to set previous selection to the current selection
             song_selection = st.selectbox(
-                label="Song",
+                label="Song selection",
                 options=filtered_ids.index.values,
                 index=filtered_ids.index.to_list().index(
                     st.session_state["song_selection"]
@@ -251,7 +253,7 @@ def main():
         except ValueError as e:
             # previous selection is no longer in the filtered results so reset selection to default
             song_selection = st.selectbox(
-                label="Song",
+                label="Song selection",
                 options=filtered_ids.index.values,
                 format_func=lambda x: filtered_ids.loc[x, "Name"],
                 key="song_selection",
@@ -277,8 +279,8 @@ def main():
             st.write("Please select a song")
         else:
             # generate acoustic print
-            DY_df = generate_acousticprint(track, category="dynamics")
-            AR_df = generate_acousticprint(track, category="articulation")
+            DY_df = generate_acoustic_print(track, category="dynamics")
+            AR_df = generate_acoustic_print(track, category="articulation")
 
             # plot acoustic print
             st.caption(f"{tracks_df['Song'].iloc[0]} by {tracks_df['Artist'].iloc[0]}")
