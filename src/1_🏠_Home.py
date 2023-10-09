@@ -48,7 +48,7 @@ def main():
         based on the fingerprint. 
         
         **Acoustic-Print** is a project that seeks to develop a visual representation of an acoustic fingerprint with a similar 
-        foundation in mind; 1) the acoustic print of a song should be deterministic and 2) songs that share similar 
+        foundation in mind; 1) the acoustic print of a song should be deterministic and, 2) songs that share similar 
         audio characteristics should have similar acoustic prints. A dual visualization is created that represents a new
         *Acoustic Print*, deviating a bit from the traditional definition. One visualization represents Rhythm & Dynamics 
         (comprised of valence, energy, and danceability) while the the other represents Articulation & Texture 
