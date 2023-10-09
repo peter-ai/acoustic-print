@@ -2,9 +2,9 @@
 Author: Peter Akioyamen
 Github: @peter-ai
 
-A web application which uses audio feature data from the Free Music Archive (FMA; 2018)
-to create visual acoustic fingerprints of songs and compare audio characteristics across the
-music catalogue. The app uses a MySQL backend and is built on Streamlit.
+A web application which uses audio feature data from the Free Music Archive (FMA)
+to create visual acoustic fingerprints of songs and compare audio characteristics 
+across the music catalogue. The app is built on Streamlit.
 
 Songs Page of the Acoustic Print web app
 """
@@ -377,11 +377,13 @@ def main():
             axis=1,
         )
     )
-    builder1.configure_default_column(filterable=False)
-    builder1.configure_pagination(
+    builder1.configure_default_column(
+        filterable=False
+    )  # make columns unfilterable given streamlit filters above
+    builder1.configure_pagination(  # configure pagination
         enabled=True, paginationAutoPageSize=False, paginationPageSize=50
     )
-    builder1.configure_column(
+    builder1.configure_column(  # configure a hyperlinked album column
         "Album",
         cellRenderer=JsCode(
             """
@@ -397,7 +399,7 @@ def main():
         """
         ),
     )
-    builder1.configure_column(
+    builder1.configure_column(  # comma format favorites column
         "Favorites",
         headerClass="leftAligned",
         cellRenderer=JsCode(
@@ -414,7 +416,7 @@ def main():
             """
         ),
     )
-    builder1.configure_column(
+    builder1.configure_column(  # comma format listens column
         "Listens",
         headerClass="leftAligned",
         cellRenderer=JsCode(
@@ -431,7 +433,7 @@ def main():
             """
         ),
     )
-    builder1.configure_column(
+    builder1.configure_column(  # format tempo to two decimals
         "Tempo",
         headerClass="leftAligned",
         cellRenderer=JsCode(
@@ -448,6 +450,8 @@ def main():
             """
         ),
     )
+
+    # build and show Aggrid table
     go1 = builder1.build()
     go1["autoSizeAllColumns"] = True
     AgGrid(
@@ -471,8 +475,8 @@ def main():
         enable_quicksearch=True,
     )
 
-    st.divider()
     # create audio feature description table
+    st.divider()
     feature_desc = get_audio_descriptions()
     with st.expander("Description of audio features"):
         st.caption("", help="double click description to expand details")
