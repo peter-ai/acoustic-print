@@ -30,6 +30,7 @@ from acoustic_helpers import (
 
 def main():
     # define local page config
+    st.experimental_set_query_params()
     st.set_page_config(
         layout="wide",
         page_title="Acoustic Print - Songs",
