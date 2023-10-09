@@ -37,7 +37,7 @@ def main():
     # create database connection
     conn_str = get_sql_connect_str()
     conn = st.experimental_connection(name="acoustic_db", type="sql", url=conn_str)
-    print(conn.query("SELECT USER();"))
+    st.write(conn.query("SELECT USER();"))
     # start page
     # TODO Project Description
     st.title("Acoustic-Print")
