@@ -37,7 +37,7 @@ def main():
     # create database connection
     conn_str = get_sql_connect_str()
     conn = st.experimental_connection(name="acoustic_db", type="sql", url=conn_str)
-
+    print(conn.query("SELECT USER();"))
     # start page
     # TODO Project Description
     st.title("Acoustic-Print")
@@ -113,8 +113,7 @@ def main():
             INNER JOIN Artists ON Tracks.artist_id=Artists.id
         ORDER BY RAND()
         LIMIT 1;
-        """,
-        ttl=1000,
+        """
     )
 
     # generate acoustic print polar curves
