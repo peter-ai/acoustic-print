@@ -8,6 +8,7 @@ import plotly.express as px
 import streamlit as st
 from dotenv import load_dotenv
 from plotly.subplots import make_subplots
+from sklearn.preprocessing import StandardScaler
 
 
 @st.cache_data
@@ -188,6 +189,16 @@ def get_filtered_tracks(
     filtered_tracks_df["Duration"] = filtered_tracks_df.Duration.apply(
         lambda x: f"{x//60}:{x-((x//60)*60):02d}"
     )
+    filtered_tracks_df["Album"] = filtered_tracks_df.apply(
+        lambda row: ["false", None]
+        if not row["Album"]
+        else
+        ["false", row["Album"]]
+        if not row["release_date"] or row["num_tracks"] == 0
+        else [row["album_id"], row["Album"]],
+        axis=1
+    )
+    filtered_tracks_df = filtered_tracks_df.drop(["release_date", "album_id", "num_tracks"], axis=1)
 
     # seperate filtered data into subsets, one with the genre and and the other without
     filtered_genres_df = filtered_tracks_df.filter(
@@ -205,7 +216,7 @@ def get_filtered_tracks(
     )
     filtered_tracks_df = (
         filtered_tracks_df.drop(["Genre"], axis=1)
-        .drop_duplicates()
+        .drop_duplicates("id")
         .reset_index(drop=True)
     )
 
@@ -267,7 +278,7 @@ def norm_tempo(tempo):
 
 
 @st.cache_data
-def generate_acousticprint(data, points=3000, category="dynamics"):
+def generate_acoustic_print(data, points=3000, category="dynamics"):
     """
     generate_fingerprint produces the acoustic fingerprint for a given song
     base on its measured audio features
@@ -464,7 +475,7 @@ def plot_acoustic_print(dynamics_df, articulation_df):
 
 
 @st.cache_data
-def get_filtered_acoustics(data, filtered_genres_df):
+def get_filtered_acoustics(data, filtered_genres_df, genres=None, songs=True):
     """
     get_filtered_acoustics _summary_
 
@@ -474,6 +485,10 @@ def get_filtered_acoustics(data, filtered_genres_df):
         1xN pandas dataframe containing the audio features for a song
     filtered_genres_df : pd.DataFrame
         a pandas dataframe of songs filtered based on user-provided parameters
+    genres : list
+        if a prefiltered list of genres has been computed, optional, default None
+    sons: bool
+        if getting acoustics for songs, default True
 
     Returns
     -------
@@ -481,8 +496,13 @@ def get_filtered_acoustics(data, filtered_genres_df):
         a pandas dataframe containing aggregated acoustic features for a song and its
         associated genres
     """
-    # get genres associated with selected track
-    genre = filtered_genres_df.loc[filtered_genres_df.id == data.id.iloc[0], "Genre"]
+    if not genres:
+        # get genres associated with selected track
+        genre = filtered_genres_df.loc[
+            filtered_genres_df.id == data.id.iloc[0], "Genre"
+        ]
+    else:
+        genre = genres
 
     # reformat audio information about given track
     track_radar = data.filter(
@@ -496,7 +516,7 @@ def get_filtered_acoustics(data, filtered_genres_df):
             "Liveness",
         ],
     ).T.reset_index(drop=False)
-    track_radar["Genre"] = "Current Song"
+    track_radar["Genre"] = "Current Song" if songs else "Current Album"
     track_radar.columns = ["index", "value", "Genre"]
     track_radar = track_radar[
         [
@@ -585,7 +605,7 @@ def plot_acoustic_bars(bar_df):
         data_frame=bar_df,
         x="Audio Features",
         y="Values",
-        color="Track Subset",
+        color="Music Subset",
         barmode="group",
     )
 
@@ -594,3 +614,35 @@ def plot_acoustic_bars(bar_df):
 
     # generate plot
     st.plotly_chart(fig, use_container_width=True)
+
+
+def write_recs(row, recommendations):
+    """
+    write_recs writes list of recommendations to sidebar with html and css controls
+
+    Parameters
+    ----------
+    row : pd.DataFrame
+        a row in a dataframe containing an album id (`id`), album title (`Title`), and artist (`Artist`)
+    recommendations : dict
+        a dictionary tracking albums that have already been recommended as a part of another genre set
+    """
+    # if album id is not in recommendations and album has not been recommended yet
+    if row["id"] not in recommendations:
+        # add id to recommendations dict
+        recommendations[row["id"]] = 1
+
+        # write album to list of recommendations in sidebar
+        st.write(
+            f"""
+            <ul style="margin-bottom:0px;">
+                <li>
+                    <a href="Album?id={row["id"]}" target=_self style="text-decoration:none;">
+                        {row["Title"]}
+                    </a> 
+                    by {row["Artist"]}
+                </li>
+            </ul>
+            """,
+            unsafe_allow_html=True,
+        )

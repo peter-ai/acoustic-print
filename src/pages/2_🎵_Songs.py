@@ -9,13 +9,14 @@ music catalogue. The app uses a MySQL backend and is built on Streamlit.
 Songs Page of the Acoustic Print web app
 """
 # import external dependencies
-import numpy as np
 import pandas as pd
 import streamlit as st
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
+from st_pages import hide_pages
 
 # import user defined package
 from acoustic_helpers import (
-    generate_acousticprint,
+    generate_acoustic_print,
     get_audio_descriptions,
     get_filtered_acoustics,
     get_filtered_tracks,
@@ -30,32 +31,13 @@ from acoustic_helpers import (
 def main():
     # define local page config
     st.set_page_config(
-        layout="wide", page_title="Acoustic Print - Songs", page_icon="🎵"
+        layout="wide",
+        page_title="Acoustic Print - Songs",
+        page_icon="🎵",
+        initial_sidebar_state="collapsed",
     )
-
-    # create audio feature description table
-    feature_desc = get_audio_descriptions()
-    with st.expander("Description of audio features"):
-        st.caption("", help="double click description to expand details")
-        st.dataframe(
-            pd.DataFrame(
-                {
-                    "Audio feature": [
-                        "Valence",
-                        "Energy",
-                        "Danceability",
-                        "Acousticness",
-                        "Instrumentalness",
-                        "Speechiness",
-                        "Tempo",
-                        "Liveness",
-                    ],
-                    "Description": feature_desc,
-                }
-            ),
-            use_container_width=True,
-            hide_index=True,
-        )
+    hide_pages(["Album"])
+    st.title("Songs")
 
     # edit the display with of multiselect widgets
     st.markdown(
@@ -169,7 +151,7 @@ def main():
             label="Explict",
             options=(0, -1, 1),
             default=(0, -1, 1),
-            format_func=lambda x: "Unknown" if x == -1 else "No" if x == 0 else "Yes",
+            format_func=lambda x: "Ambiguous" if x == -1 else "No" if x == 0 else "Yes",
         )
 
     ### -----------------------------
@@ -180,11 +162,11 @@ def main():
 
     # query database for all tracks
     sql_query = """
-        SELECT T.title AS `Song`, AR.name AS Artist, AB.title AS Album, 
+        SELECT T.title AS `Song`, AR.name AS Artist, AB.title AS Album, AB.release_date, AB.num_tracks, 
             T.duration AS Duration, T.Favorites AS Favorites, T.listens AS Listens, G.title AS Genre,
             T.valence AS Valence, T.energy AS Energy, T.danceability AS Danceability,
             T.acousticness AS Acousticness, T.instrumentalness AS Instrumentalness, T.speechiness AS Speechiness,
-            T.liveness AS Liveness, T.tempo AS Tempo, T.id, T.explicit AS Explicit
+            T.liveness AS Liveness, T.tempo AS Tempo, T.id, T.album_id, T.explicit AS Explicit
         FROM Tracks T
             LEFT JOIN Albums AB ON T.album_id=AB.id
             INNER JOIN Artists AR 
@@ -224,37 +206,35 @@ def main():
     ### --------------------------------------
     ### Output data and visual content to page
     # define song selection widget
-    filtered_ids = filtered_tracks_df.id
+    filtered_ids = filtered_tracks_df[["id", "Song", "Artist"]].set_index("id")
+    filtered_ids["Name"] = filtered_ids.Song.str.cat(filtered_ids.Artist, sep=" by ")
     if "song_selection" not in st.session_state:
         # if song selection is not in session state, it has not occurred so set default values
         song_selection = st.selectbox(
-            label="Song",
-            options=filtered_tracks_df.id,
-            format_func=lambda x: " by ".join(
-                filtered_tracks_df.iloc[
-                    np.where(filtered_ids == x)[0], :2
-                ].values.tolist()[0]
-            ),
+            label="Song selection",
+            options=filtered_ids.index.values,
+            format_func=lambda x: filtered_ids.loc[x, "Name"],
             key="song_selection",
         )
     else:
+        song_selection = st.session_state.song_selection
         try:
             # otherwise it has occurred so attempt to set previous selection to the current selection
             song_selection = st.selectbox(
-                label="Song",
-                options=filtered_ids,
-                index=filtered_ids.index[
-                    list(filtered_ids).index(st.session_state["song_selection"])
-                ],
-                format_func=lambda x: f"{filtered_tracks_df.iloc[np.where(filtered_ids==x)[0], 0].iloc[0]} by {filtered_tracks_df.iloc[np.where(filtered_ids==x)[0], 1].iloc[0]}",
+                label="Song selection",
+                options=filtered_ids.index.values,
+                index=filtered_ids.index.to_list().index(
+                    st.session_state["song_selection"]
+                ),
+                format_func=lambda x: filtered_ids.loc[x, "Name"],
                 key="song_selection",
             )
         except ValueError as e:
             # previous selection is no longer in the filtered results so reset selection to default
             song_selection = st.selectbox(
-                label="Song",
-                options=filtered_ids,
-                format_func=lambda x: f"{filtered_tracks_df.iloc[np.where(filtered_ids==x)[0], 0].iloc[0]} by {filtered_tracks_df.iloc[np.where(filtered_ids==x)[0], 1].iloc[0]}",
+                label="Song selection",
+                options=filtered_ids.index.values,
+                format_func=lambda x: filtered_ids.loc[x, "Name"],
                 key="song_selection",
             )
         finally:
@@ -278,8 +258,8 @@ def main():
             st.write("Please select a song")
         else:
             # generate acoustic print
-            DY_df = generate_acousticprint(track, category="dynamics")
-            AR_df = generate_acousticprint(track, category="articulation")
+            DY_df = generate_acoustic_print(track, category="dynamics")
+            AR_df = generate_acoustic_print(track, category="articulation")
 
             # plot acoustic print
             st.caption(f"{tracks_df['Song'].iloc[0]} by {tracks_df['Artist'].iloc[0]}")
@@ -296,7 +276,7 @@ def main():
             radar_df = get_filtered_acoustics(track, filtered_genres_df)
 
             # plot comparative acoustic radar
-            st.write("Audio Features of Current Song vs. Associated Genres")
+            st.write("Audio Features of Current Song vs. Songs in Associated Genres")
             st.caption(
                 f"{tracks_df['Song'].iloc[0]} by {tracks_df['Artist'].iloc[0]}",
                 help="click on legend items to change visibility; double-click to isolate",
@@ -339,6 +319,9 @@ def main():
                         "Song",
                         "Artist",
                         "Album",
+                        "release_date",
+                        "album_id",
+                        "num_tracks",
                         "Duration",
                         "Favorites",
                         "Listens",
@@ -353,21 +336,21 @@ def main():
                 .mean(axis=0)
                 .reset_index(drop=False)
             )
-            catalogue_df["Track Subset"] = "Catalogue (total)"
+            catalogue_df["Music Subset"] = "Catalogue (total)"
 
             # rename and union datasets
             catalogue_df.columns = bar_df.columns = [
                 "Audio Features",
                 "Values",
-                "Track Subset",
+                "Music Subset",
             ]
             bar_df = pd.concat([bar_df, catalogue_df], ignore_index=True).sort_values(
-                by="Track Subset"
+                by="Music Subset"
             )
 
             # plot acoustic bars
             st.write(
-                "Audio Features of Current Song vs. Associated Genres and Music Catalogue Subsets"
+                "Audio Features of Current Song vs. Songs in Associated Genres and Music Catalogue Subsets"
             )
             st.caption(
                 f"{tracks_df['Song'].iloc[0]} by {tracks_df['Artist'].iloc[0]}",
@@ -376,23 +359,142 @@ def main():
             plot_acoustic_bars(bar_df)
 
     # define table of tracks
-    st.caption(body="Tracks", help="cmd+f/ctrl+f to search table")
-    st.dataframe(
-        filtered_tracks_df,
-        hide_index=True,
-        use_container_width=True,
-        column_config={
-            "id": None,
-            "Valence": None,
-            "Energy": None,
-            "Danceability": None,
-            "Acousticness": None,
-            "Instrumentalness": None,
-            "Speechiness": None,
-            "Liveness": None,
-            "Tempo": st.column_config.NumberColumn("Tempo (BPM)", format="%.2f"),
-        },
+    st.caption(body="Tracks", help="cmd+f/ctrl+f to search table, open panel to filter")
+
+    # construct Aggrid builder and format the columns for the tracks table
+    builder1 = GridOptionsBuilder.from_dataframe(
+        filtered_tracks_df.drop(
+            [
+                "id",
+                "Valence",
+                "Energy",
+                "Danceability",
+                "Acousticness",
+                "Instrumentalness",
+                "Speechiness",
+                "Liveness",
+            ],
+            axis=1,
+        )
     )
+    builder1.configure_default_column(filterable=False)
+    builder1.configure_pagination(
+        enabled=True, paginationAutoPageSize=False, paginationPageSize=50
+    )
+    builder1.configure_column(
+        "Album",
+        cellRenderer=JsCode(
+            """
+            class UrlCellRenderer {
+                init(params) {
+                    this.eGui = document.createElement('span');
+                    this.eGui.innerHTML = params.value[0] == 'false' ? params.value[1] : '<a href="/Album?id='+params.value[0]+'" target=_target style="text-decoration:none;">'+params.value[1]+'</a>';    
+                }
+                getGui() {
+                    return this.eGui;
+                }
+            }
+        """
+        ),
+    )
+    builder1.configure_column(
+        "Favorites",
+        headerClass="leftAligned",
+        cellRenderer=JsCode(
+            """
+            class UrlCellRenderer {
+                init(params) {
+                    this.eGui = document.createElement('span');
+                    this.eGui.innerHTML = Number(params.value).toLocaleString("en-US");
+                }
+                getGui() {
+                    return this.eGui;
+                }
+            }
+            """
+        ),
+    )
+    builder1.configure_column(
+        "Listens",
+        headerClass="leftAligned",
+        cellRenderer=JsCode(
+            """
+            class UrlCellRenderer {
+                init(params) {
+                    this.eGui = document.createElement('span');
+                    this.eGui.innerHTML = Number(params.value).toLocaleString("en-US");
+                }
+                getGui() {
+                    return this.eGui;
+                }
+            }
+            """
+        ),
+    )
+    builder1.configure_column(
+        "Tempo",
+        headerClass="leftAligned",
+        cellRenderer=JsCode(
+            """
+            class UrlCellRenderer {
+                init(params) {
+                    this.eGui = document.createElement('span');
+                    this.eGui.innerHTML = Number(params.value).toFixed(2);
+                }
+                getGui() {
+                    return this.eGui;
+                }
+            }
+            """
+        ),
+    )
+    go1 = builder1.build()
+    go1["autoSizeAllColumns"] = True
+    AgGrid(
+        filtered_tracks_df.drop(
+            [
+                "id",
+                "Valence",
+                "Energy",
+                "Danceability",
+                "Acousticness",
+                "Instrumentalness",
+                "Speechiness",
+                "Liveness",
+            ],
+            axis=1,
+        ),
+        gridOptions=go1,
+        fit_columns_on_grid_load=True,
+        theme="streamlit",
+        allow_unsafe_jscode=True,
+        enable_quicksearch=True,
+    )
+
+    st.divider()
+    # create audio feature description table
+    feature_desc = get_audio_descriptions()
+    with st.expander("Description of audio features"):
+        st.caption("", help="double click description to expand details")
+        st.dataframe(
+            pd.DataFrame(
+                {
+                    "Audio feature": [
+                        "Valence",
+                        "Energy",
+                        "Danceability",
+                        "Acousticness",
+                        "Instrumentalness",
+                        "Speechiness",
+                        "Tempo",
+                        "Liveness",
+                    ],
+                    "Description": feature_desc,
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
 
 
 # main program
