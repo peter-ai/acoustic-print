@@ -2,9 +2,9 @@
 Author: Peter Akioyamen
 Github: @peter-ai
 
-A web application which uses audio feature data from the Free Music Archive (FMA; 2018)
-to create visual acoustic fingerprints of songs and compare audio characteristics across the
-music catalogue. The app uses a MySQL backend and is built on Streamlit.
+A web application which uses audio feature data from the Free Music Archive (FMA)
+to create visual acoustic fingerprints of songs and compare audio characteristics 
+across the music catalogue. The app is built on Streamlit.
 
 Home Page of the Acoustic Print web app
 """
@@ -25,6 +25,7 @@ from acoustic_helpers import (
 
 def main():
     # define local page config
+    st.experimental_set_query_params()
     st.set_page_config(
         layout="wide",
         page_title="Acoustic Print - Home",
@@ -34,44 +35,59 @@ def main():
     hide_pages(["Album"])
     show_artists = False
 
-    # create database connection
-    conn_str = get_sql_connect_str()
-    conn = st.experimental_connection(name="acoustic_db", type="sql", url=conn_str)
-    st.write(conn.query("SELECT USER();"))
-    # start page
-    # TODO Project Description
+    ### ------------------------------------
+    ### Headers, background, project context
     st.title("Acoustic-Print")
     st.write(
         """
         **Author: Peter Akioyamen** (see [@peter-ai](https://github.com/peter-ai/acoustic-print) for the full github repo)
         
         ### Context
-        An audio or acoustic fingerprint is a digital summary that can be generated from an audio signal deterministically. 
-        Generally, it allows for the lookup of similar audio signals and helps identify an audio signal so it can be 
-        recognized quickly later. 
+        Traditionally, an acoustic fingerprint is a digital summary that is generated from an audio signal deterministically. 
+        It provides a method to identify an audio signal quickly, and allows for the lookup of similar audio signals 
+        based on the fingerprint. 
         
         **Acoustic-Print** is a project that seeks to develop a visual representation of an acoustic fingerprint with a similar 
-        foundation in mind; the acoustic fingerprint should be deterministic and songs that are similar in audio features should
-        have similar acoustic-prints. The acoustic-print of a song is split into two visualizations, one representing Rhythm & Dynamics
-        (comprised of valence, energy, and danceability) and the other Articulation & Texture (comprised of speechiness, instrumentalness, 
-        and acousticness), with embedding information about the tempo of the song.
+        foundation in mind; 1) the acoustic print of a song should be deterministic and 2) songs that share similar 
+        audio characteristics should have similar acoustic prints. A dual visualization is created that represents a new
+        *Acoustic Print*, deviating a bit from the traditional definition. One visualization represents Rhythm & Dynamics 
+        (comprised of valence, energy, and danceability) while the the other represents Articulation & Texture 
+        (comprised of speechiness, instrumentalness, and acousticness), both embedding information about the 
+        tempo of the song (see further details below).
 
-        ### Explore
-        Explore the acoustic print of various songs and survey how the audio features of tracks compare to their broader genres
+        Explore the acoustic print of various songs and survey how the audio features of tracks compare to one another
         on the <a href="Songs" target=_self style="text-decoration:none;">Songs</a> page. Click on an album in the table below 
-        to see further details about it and how it compares relative to other music in the catalogue and interact with the
-        visualizations shown throughout this web app.
+        to view its audio characteristics, and get recommendations of similar albums across genres. All visualizations are live,
+        so have fun.
         """,
         unsafe_allow_html=True,
     )
 
+    ### -----------------------------
+    ### Descrpition of audio features
     feature_desc = get_audio_descriptions()
     with st.expander("See further details"):
-        # TODO - Write stuff about data and analyss
         st.write(
             f"""
-            ### Analysis
-            Stuff about data and analysis ... [PLACEHOLDER] Polar Curves
+            #### Important Notes
+            Data on which this project is built is from the Free Musich Archive (FMA), in particular,
+            from the study *FMA: A Dataset For Music Analysis* by Michaël Defferrard, Kirell Benzi, 
+            Pierre Vandergheynst, and Xavier Bresson. Unfortunately, given the nature of the archive, 
+            you will likely not see many songs from the most popular performers and your favorite artists.
+            Due to rate limiting on the Spotify API and a policy against the use of Spotify data for machine
+            learning, using recent data for this project was less feasible. Nonetheless, I hope you enjoy.
+
+            #### Analysis
+            Each visualization representing the acoustic print of a song is produced through a combination of
+            polar curves that have been fixed at the origin in a given cartesian plane. The shape of each
+            curve considers a song's tempo and one other distinct audio feature. As a result, each polar 
+            curve in a given acoustic print encodes a unique characteristic of the song it is representing.
+
+            Since the feature space is fairly small and the features also have the same range, album recommendations 
+            are genereated via euclidean distances. Clustering as a precursor to identifying similar albums was explored. 
+            The existence of meaningful and/or separable clusters was low so there was little justification to use a more 
+            complicated recommendation pipeline, given results from traditional distance/similarity metrics were highly comparable.
+            
             #### Description of Audio Features
             """
         )
@@ -95,15 +111,15 @@ def main():
             use_container_width=True,
             hide_index=True,
         )
-        st.write(
-            """
-            ### Data
-            [PLACEHOLDER]
-            """
-        )
     st.divider()
 
-    # query database for random track
+    ### -----------------------------------------------
+    ### Retrieve data and visualize random track choice
+    # connect to database
+    conn_str = get_sql_connect_str()
+    conn = st.experimental_connection(name="acoustic_db", type="sql", url=conn_str)
+
+    # query database for random track from db
     rand_song = conn.query(
         """
         SELECT title AS `Song`, acousticness AS Acousticness, danceability AS Danceability, 
@@ -123,10 +139,12 @@ def main():
     # caption and plot acoustic print
     st.write("Acoustic Print")
     st.caption(
-        f"{rand_song['Song'].iloc[0]} by {rand_song['Artist'].iloc[0]}",
+        f"**Spontaneous song selection:** {rand_song['Song'].iloc[0]} by {rand_song['Artist'].iloc[0]}",
     )
     plot_acoustic_print(DY_df, AR_df)
 
+    ### ---------------------------
+    ### Display albums in catalogue
     # query database for albums data
     albums_df = conn.query(
         """ 
@@ -145,19 +163,16 @@ def main():
         albums_df["Release Date"], format="%Y-%M-%d"
     )
 
-    # create caption for albums data
-    st.caption(body="Albums", help="click an album to see details")
-
     # construct Aggrid builder and format the columns for the albums table
     builder1 = GridOptionsBuilder.from_dataframe(
         albums_df.filter(
             ["Linkage", "Artist", "Release Date", "Favorites", "Listens", "Songs"]
         )
     )
-    builder1.configure_pagination(
+    builder1.configure_pagination(  # configure pagination
         enabled=True, paginationAutoPageSize=False, paginationPageSize=50
     )
-    builder1.configure_column(
+    builder1.configure_column(  # configure a hyperlinked album column
         "Linkage",
         "Album",
         cellRenderer=JsCode(
@@ -174,13 +189,15 @@ def main():
         """
         ),
     )
-    builder1.configure_column(
+    builder1.configure_column(  # reformat release date column
         "Release Date",
         type=["customDateTimeFormat", "dateColumnFilter"],
         custom_format_string="yyyy-MM-dd",
     )
-    builder1.configure_column("Favorites", headerClass="leftAligned")
     builder1.configure_column(
+        "Favorites", headerClass="leftAligned"
+    )  # left align Favorites column header
+    builder1.configure_column(  # left align Listnes column header and comma delimit values
         "Listens",
         headerClass="leftAligned",
         cellRenderer=JsCode(
@@ -197,11 +214,14 @@ def main():
             """
         ),
     )
-    builder1.configure_column("Songs", headerClass="leftAligned")
+    builder1.configure_column(
+        "Songs", "Number of Songs", headerClass="leftAligned"
+    )  # left align Favorites column header
 
-    # build and show albums table
+    # build albums table, create caption and show  table
     go1 = builder1.build()
     go1["autoSizeAllColumns"] = True
+    st.caption(body="Albums", help="click an album to see details")
     AgGrid(
         albums_df.filter(
             ["Linkage", "Artist", "Release Date", "Favorites", "Listens", "Songs"]

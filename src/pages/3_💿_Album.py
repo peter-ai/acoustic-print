@@ -15,7 +15,7 @@ import time
 import numpy as np
 import pandas as pd
 import streamlit as st
-from sklearn.metrics.pairwise import cosine_distances
+from sklearn.metrics.pairwise import euclidean_distances
 
 # import user defined package
 from acoustic_helpers import (
@@ -196,7 +196,7 @@ def main():
                 recs_stats_df = recs_stats_df.drop(["id", "Title", "Artist"], axis=1)
 
                 # compute cosine distance between albums in genre and current album
-                cos_dis = cosine_distances(
+                cos_dis = euclidean_distances(
                     recs_stats_df, album_stats_df.to_numpy().reshape(1, -1)
                 ).reshape(
                     -1,

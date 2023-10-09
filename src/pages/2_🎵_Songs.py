@@ -359,9 +359,6 @@ def main():
             )
             plot_acoustic_bars(bar_df)
 
-    # define table of tracks
-    st.caption(body="Tracks", help="cmd+f/ctrl+f to search table, open panel to filter")
-
     # construct Aggrid builder and format the columns for the tracks table
     builder1 = GridOptionsBuilder.from_dataframe(
         filtered_tracks_df.drop(
@@ -452,9 +449,10 @@ def main():
         ),
     )
 
-    # build and show Aggrid table
+    # build albums table, create caption and show  table
     go1 = builder1.build()
     go1["autoSizeAllColumns"] = True
+    st.caption(body="Tracks", help="cmd+f/ctrl+f to search table, open panel to filter")
     AgGrid(
         filtered_tracks_df.drop(
             [
