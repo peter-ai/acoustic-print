@@ -1,3 +1,13 @@
+"""
+Author: Peter Akioyamen
+Github: @peter-ai
+
+A web application which uses audio feature data from the Free Music Archive (FMA; 2018)
+to create visual acoustic fingerprints of songs and compare audio characteristics across the
+music catalogue. The app uses a MySQL backend and is built on Streamlit.
+
+Module defining functions used across webapp
+"""
 # import packages from standard libraries
 import os
 
@@ -8,7 +18,6 @@ import plotly.express as px
 import streamlit as st
 from dotenv import load_dotenv
 from plotly.subplots import make_subplots
-from sklearn.preprocessing import StandardScaler
 
 
 @st.cache_data
@@ -192,13 +201,14 @@ def get_filtered_tracks(
     filtered_tracks_df["Album"] = filtered_tracks_df.apply(
         lambda row: ["false", None]
         if not row["Album"]
-        else
-        ["false", row["Album"]]
+        else ["false", row["Album"]]
         if not row["release_date"] or row["num_tracks"] == 0
         else [row["album_id"], row["Album"]],
-        axis=1
+        axis=1,
     )
-    filtered_tracks_df = filtered_tracks_df.drop(["release_date", "album_id", "num_tracks"], axis=1)
+    filtered_tracks_df = filtered_tracks_df.drop(
+        ["release_date", "album_id", "num_tracks"], axis=1
+    )
 
     # seperate filtered data into subsets, one with the genre and and the other without
     filtered_genres_df = filtered_tracks_df.filter(

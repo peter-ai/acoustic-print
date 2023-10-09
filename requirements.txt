@@ -23,7 +23,6 @@ comm==0.1.4
 contourpy==1.1.1
 cramjam==2.7.0
 cycler==0.12.0
-dask==2023.9.3
 debugpy==1.8.0
 decorator==5.1.1
 defusedxml==0.7.1
@@ -99,6 +98,7 @@ Pygments==2.16.1
 PyMySQL==1.1.0
 pyparsing==3.1.1
 python-dateutil==2.8.2
+python-decouple==3.8
 python-dotenv==1.0.0
 python-json-logger==2.0.7
 pytz==2023.3.post1
@@ -112,6 +112,8 @@ rfc3986-validator==0.1.1
 rich==13.6.0
 rpds-py==0.10.3
 safetensors==0.3.3
+scikit-learn==1.3.1
+scipy==1.11.3
 seaborn==0.13.0
 Send2Trash==1.8.2
 six==1.16.0
@@ -119,11 +121,14 @@ smmap==5.0.1
 sniffio==1.3.0
 soupsieve==2.5
 SQLAlchemy==2.0.21
+st-pages==0.4.5
 stack-data==0.6.3
 streamlit==1.27.2
+streamlit-aggrid==0.3.4.post3
 sympy==1.12
 tenacity==8.2.3
 terminado==0.17.1
+threadpoolctl==3.2.0
 tinycss2==1.2.1
 tokenizers==0.14.0
 toml==0.10.2
