@@ -9,7 +9,9 @@ music catalogue. The app uses a MySQL backend and is built on Streamlit.
 Module defining functions used across webapp
 """
 # import packages from standard libraries
+import logging
 import os
+from sys import stdout
 
 # import external dependencies
 import numpy as np
@@ -18,6 +20,30 @@ import plotly.express as px
 import streamlit as st
 from dotenv import load_dotenv
 from plotly.subplots import make_subplots
+
+
+@st.cache_resource
+def get_logger():
+    """
+    get_logger sets up a logger to report excpetions to standout
+
+    Returns
+    -------
+    logger
+        a logger object
+    """
+    logger = logging.getLogger("acoustic-logger")
+    logger.setLevel(logging.DEBUG)
+
+    handler = logging.StreamHandler(stdout)
+    handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    return logger
 
 
 @st.cache_data
