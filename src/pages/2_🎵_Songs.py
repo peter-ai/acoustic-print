@@ -11,6 +11,7 @@ Songs Page of the Acoustic Print web app
 # import external dependencies
 import pandas as pd
 import streamlit as st
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 from st_pages import hide_pages
 
 # import user defined package
@@ -30,7 +31,10 @@ from acoustic_helpers import (
 def main():
     # define local page config
     st.set_page_config(
-        layout="wide", page_title="Acoustic Print - Songs", page_icon="🎵"
+        layout="wide",
+        page_title="Acoustic Print - Songs",
+        page_icon="🎵",
+        initial_sidebar_state="collapsed",
     )
     hide_pages(["Album"])
     st.title("Songs")
@@ -158,11 +162,11 @@ def main():
 
     # query database for all tracks
     sql_query = """
-        SELECT T.title AS `Song`, AR.name AS Artist, AB.title AS Album, 
+        SELECT T.title AS `Song`, AR.name AS Artist, AB.title AS Album, AB.release_date, AB.num_tracks, 
             T.duration AS Duration, T.Favorites AS Favorites, T.listens AS Listens, G.title AS Genre,
             T.valence AS Valence, T.energy AS Energy, T.danceability AS Danceability,
             T.acousticness AS Acousticness, T.instrumentalness AS Instrumentalness, T.speechiness AS Speechiness,
-            T.liveness AS Liveness, T.tempo AS Tempo, T.id, T.explicit AS Explicit
+            T.liveness AS Liveness, T.tempo AS Tempo, T.id, T.album_id, T.explicit AS Explicit
         FROM Tracks T
             LEFT JOIN Albums AB ON T.album_id=AB.id
             INNER JOIN Artists AR 
@@ -315,6 +319,9 @@ def main():
                         "Song",
                         "Artist",
                         "Album",
+                        "release_date",
+                        "album_id",
+                        "num_tracks",
                         "Duration",
                         "Favorites",
                         "Listens",
@@ -352,22 +359,116 @@ def main():
             plot_acoustic_bars(bar_df)
 
     # define table of tracks
-    st.caption(body="Tracks", help="cmd+f/ctrl+f to search table")
-    st.dataframe(
-        filtered_tracks_df,
-        hide_index=True,
-        use_container_width=True,
-        column_config={
-            "id": None,
-            "Valence": None,
-            "Energy": None,
-            "Danceability": None,
-            "Acousticness": None,
-            "Instrumentalness": None,
-            "Speechiness": None,
-            "Liveness": None,
-            "Tempo": st.column_config.NumberColumn("Tempo (BPM)", format="%.2f"),
-        },
+    st.caption(body="Tracks", help="cmd+f/ctrl+f to search table, open panel to filter")
+
+    # construct Aggrid builder and format the columns for the tracks table
+    builder1 = GridOptionsBuilder.from_dataframe(
+        filtered_tracks_df.drop(
+            [
+                "id",
+                "Valence",
+                "Energy",
+                "Danceability",
+                "Acousticness",
+                "Instrumentalness",
+                "Speechiness",
+                "Liveness",
+            ],
+            axis=1,
+        )
+    )
+    builder1.configure_default_column(filterable=False)
+    builder1.configure_pagination(
+        enabled=True, paginationAutoPageSize=False, paginationPageSize=50
+    )
+    builder1.configure_column(
+        "Album",
+        cellRenderer=JsCode(
+            """
+            class UrlCellRenderer {
+                init(params) {
+                    this.eGui = document.createElement('span');
+                    this.eGui.innerHTML = params.value[0] == 'false' ? params.value[1] : '<a href="/Album?id='+params.value[0]+'" target=_target style="text-decoration:none;">'+params.value[1]+'</a>';    
+                }
+                getGui() {
+                    return this.eGui;
+                }
+            }
+        """
+        ),
+    )
+    builder1.configure_column(
+        "Favorites",
+        headerClass="leftAligned",
+        cellRenderer=JsCode(
+            """
+            class UrlCellRenderer {
+                init(params) {
+                    this.eGui = document.createElement('span');
+                    this.eGui.innerHTML = Number(params.value).toLocaleString("en-US");
+                }
+                getGui() {
+                    return this.eGui;
+                }
+            }
+            """
+        ),
+    )
+    builder1.configure_column(
+        "Listens",
+        headerClass="leftAligned",
+        cellRenderer=JsCode(
+            """
+            class UrlCellRenderer {
+                init(params) {
+                    this.eGui = document.createElement('span');
+                    this.eGui.innerHTML = Number(params.value).toLocaleString("en-US");
+                }
+                getGui() {
+                    return this.eGui;
+                }
+            }
+            """
+        ),
+    )
+    builder1.configure_column(
+        "Tempo",
+        headerClass="leftAligned",
+        cellRenderer=JsCode(
+            """
+            class UrlCellRenderer {
+                init(params) {
+                    this.eGui = document.createElement('span');
+                    this.eGui.innerHTML = Number(params.value).toFixed(2);
+                }
+                getGui() {
+                    return this.eGui;
+                }
+            }
+            """
+        ),
+    )
+    go1 = builder1.build()
+    go1["autoSizeAllColumns"] = True
+    AgGrid(
+        filtered_tracks_df.drop(
+            [
+                "id",
+                "Valence",
+                "Energy",
+                "Danceability",
+                "Acousticness",
+                "Instrumentalness",
+                "Speechiness",
+                "Liveness",
+            ],
+            axis=1,
+        ),
+        gridOptions=go1,
+        fit_columns_on_grid_load=True,
+        theme="streamlit",
+        allow_unsafe_jscode=True,
+        enable_quicksearch=True,
     )
 
     st.divider()
@@ -394,7 +495,7 @@ def main():
             use_container_width=True,
             hide_index=True,
         )
-    
+
 
 # main program
 if __name__ == "__main__":

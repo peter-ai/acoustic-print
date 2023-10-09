@@ -11,7 +11,7 @@ Home Page of the Acoustic Print web app
 # import external dependencies
 import pandas as pd
 import streamlit as st
-from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, JsCode
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 from st_pages import hide_pages
 
 # import user defined package
@@ -122,6 +122,7 @@ def main():
     AR_df = generate_acoustic_print(rand_song, points=2000, category="articulation")
 
     # caption and plot acoustic print
+    st.write("Acoustic Print")
     st.caption(
         f"{rand_song['Song'].iloc[0]} by {rand_song['Artist'].iloc[0]}",
     )

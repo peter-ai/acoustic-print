@@ -189,6 +189,16 @@ def get_filtered_tracks(
     filtered_tracks_df["Duration"] = filtered_tracks_df.Duration.apply(
         lambda x: f"{x//60}:{x-((x//60)*60):02d}"
     )
+    filtered_tracks_df["Album"] = filtered_tracks_df.apply(
+        lambda row: ["false", None]
+        if not row["Album"]
+        else
+        ["false", row["Album"]]
+        if not row["release_date"] or row["num_tracks"] == 0
+        else [row["album_id"], row["Album"]],
+        axis=1
+    )
+    filtered_tracks_df = filtered_tracks_df.drop(["release_date", "album_id", "num_tracks"], axis=1)
 
     # seperate filtered data into subsets, one with the genre and and the other without
     filtered_genres_df = filtered_tracks_df.filter(
@@ -206,7 +216,7 @@ def get_filtered_tracks(
     )
     filtered_tracks_df = (
         filtered_tracks_df.drop(["Genre"], axis=1)
-        .drop_duplicates()
+        .drop_duplicates("id")
         .reset_index(drop=True)
     )
 

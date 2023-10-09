@@ -179,7 +179,7 @@ def main():
 
                 # get albums with minimum cosine distances
                 genre_recs = recs_details_df.iloc[
-                    np.argpartition(cos_dis, 11)[:3], :
+                    np.argpartition(cos_dis, 3)[:3], :
                 ].reset_index(drop=False)
 
                 # write recommendation list
@@ -234,13 +234,13 @@ def main():
             "Oops, seems like the album you've selected is missing from the catalogue, please select another..."
         )
         st.stop()
-    except ValueError:
+    except ValueError as e:
+        st.write(e)
         st.write(
             "Oops, seems like someone tinkered with the album identifier, it's invalid so please select another..."
         )
         st.stop()
     except Exception as e:
-        st.write(e)
         st.write(
             "Oops, seems like the album you selected has no tracks on it, plase select another..."
         )
