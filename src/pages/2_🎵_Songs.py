@@ -35,31 +35,6 @@ def main():
     hide_pages(["Album"])
     st.title("Songs")
 
-    # create audio feature description table
-    feature_desc = get_audio_descriptions()
-    with st.expander("Description of audio features"):
-        st.caption("", help="double click description to expand details")
-        st.dataframe(
-            pd.DataFrame(
-                {
-                    "Audio feature": [
-                        "Valence",
-                        "Energy",
-                        "Danceability",
-                        "Acousticness",
-                        "Instrumentalness",
-                        "Speechiness",
-                        "Tempo",
-                        "Liveness",
-                    ],
-                    "Description": feature_desc,
-                }
-            ),
-            use_container_width=True,
-            hide_index=True,
-        )
-    st.divider()
-
     # edit the display with of multiselect widgets
     st.markdown(
         """
@@ -172,7 +147,7 @@ def main():
             label="Explict",
             options=(0, -1, 1),
             default=(0, -1, 1),
-            format_func=lambda x: "Unknown" if x == -1 else "No" if x == 0 else "Yes",
+            format_func=lambda x: "Ambiguous" if x == -1 else "No" if x == 0 else "Yes",
         )
 
     ### -----------------------------
@@ -297,7 +272,7 @@ def main():
             radar_df = get_filtered_acoustics(track, filtered_genres_df)
 
             # plot comparative acoustic radar
-            st.write("Audio Features of Current Song vs. Associated Genres")
+            st.write("Audio Features of Current Song vs. Songs in Associated Genres")
             st.caption(
                 f"{tracks_df['Song'].iloc[0]} by {tracks_df['Artist'].iloc[0]}",
                 help="click on legend items to change visibility; double-click to isolate",
@@ -354,21 +329,21 @@ def main():
                 .mean(axis=0)
                 .reset_index(drop=False)
             )
-            catalogue_df["Track Subset"] = "Catalogue (total)"
+            catalogue_df["Music Subset"] = "Catalogue (total)"
 
             # rename and union datasets
             catalogue_df.columns = bar_df.columns = [
                 "Audio Features",
                 "Values",
-                "Track Subset",
+                "Music Subset",
             ]
             bar_df = pd.concat([bar_df, catalogue_df], ignore_index=True).sort_values(
-                by="Track Subset"
+                by="Music Subset"
             )
 
             # plot acoustic bars
             st.write(
-                "Audio Features of Current Song vs. Associated Genres and Music Catalogue Subsets"
+                "Audio Features of Current Song vs. Songs in Associated Genres and Music Catalogue Subsets"
             )
             st.caption(
                 f"{tracks_df['Song'].iloc[0]} by {tracks_df['Artist'].iloc[0]}",
@@ -395,6 +370,31 @@ def main():
         },
     )
 
+    st.divider()
+    # create audio feature description table
+    feature_desc = get_audio_descriptions()
+    with st.expander("Description of audio features"):
+        st.caption("", help="double click description to expand details")
+        st.dataframe(
+            pd.DataFrame(
+                {
+                    "Audio feature": [
+                        "Valence",
+                        "Energy",
+                        "Danceability",
+                        "Acousticness",
+                        "Instrumentalness",
+                        "Speechiness",
+                        "Tempo",
+                        "Liveness",
+                    ],
+                    "Description": feature_desc,
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+    
 
 # main program
 if __name__ == "__main__":
