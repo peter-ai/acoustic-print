@@ -263,7 +263,7 @@ def main():
             AR_df = generate_acoustic_print(track, category="articulation")
 
             # plot acoustic print
-            st.caption(f"{tracks_df['Song'].iloc[0]} by {tracks_df['Artist'].iloc[0]}")
+            # st.caption(f"{tracks_df['Song'].iloc[0]} by {tracks_df['Artist'].iloc[0]}")
             plot_acoustic_print(DY_df, AR_df)
 
     # define second tab as container for Radar chart
@@ -279,7 +279,8 @@ def main():
             # plot comparative acoustic radar
             st.write("Audio Features of Current Song vs. Songs in Associated Genres")
             st.caption(
-                f"{tracks_df['Song'].iloc[0]} by {tracks_df['Artist'].iloc[0]}",
+                "",
+                #    f"{tracks_df['Song'].iloc[0]} by {tracks_df['Artist'].iloc[0]}",
                 help="click on legend items to change visibility; double-click to isolate",
             )
             plot_acoustic_radar(radar_df)
@@ -354,7 +355,8 @@ def main():
                 "Audio Features of Current Song vs. Songs in Associated Genres and Music Catalogue Subsets"
             )
             st.caption(
-                f"{tracks_df['Song'].iloc[0]} by {tracks_df['Artist'].iloc[0]}",
+                "",
+                #    f"{tracks_df['Song'].iloc[0]} by {tracks_df['Artist'].iloc[0]}",
                 help="click on legend items to change visibility; double-click to isolate",
             )
             plot_acoustic_bars(bar_df)
