@@ -1,6 +1,6 @@
 # acoustic-print
 Acoustic Print is a data visualization web app that takes a unique approach to a traditional class of techniques in acoustic fingerprinting. Based on audio features of a song, such as energy, tempo, and valence, to name a few, a two-part acoustic fingerprint is constructed out of polar curves and visualized in 3-dimensions. Acoustic Print allows users to visually perceive similarities and differences between songs based on underlying characteristics.
 
-[**Acoustic Print**](https://acoustic-print.streamlit.app/) was developed in Python with the front-end built on Streamlit, using a MySQL backend (unfortunately, the RDS instance has been deleted with no backups, so the live application no longer functions as expected).
+[**Acoustic Print**](https://acoustic-print.streamlit.app/) was developed in Python with the front-end built on Streamlit, using a MySQL backend.
 
 Data on which this project is built is from the Free Music Archive (FMA), in particular, from the study FMA: A Dataset For Music Analysis by Michaël Defferrard, Kirell Benzi, Pierre Vandergheynst, and Xavier Bresson ([github](https://github.com/mdeff/fma)). Unfortunately, given the nature of the archive, you will likely not see many songs from the most popular performers and your favorite artists. A live API would have made this even more interesting. Due to rate limiting on the Spotify API and a policy against the use of Spotify data for machine learning, using live or recent data for this project was less feasible. Nonetheless, I hope you enjoy.
